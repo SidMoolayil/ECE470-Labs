@@ -1,0 +1,69 @@
+function tau = rep(q,myrobot,obs)
+    %
+    eta = 1;
+    
+    %
+    tau = zeros(1,6);
+    if length(obs) != 0
+        Hs = forward(q,myrobot)
+
+        for i = 1:6
+
+
+            % J calculation
+            % J column by column
+            J = zeros(3,n);
+            Hs = forward(q,myrobot)
+            o_i  = Hs(1:3,4,i);
+
+            for col = 1:idx
+                h_col_1 = forward_idx(q,myrobot,col-1);
+                o_col_1 = h_col_1(1:3,4);
+                o_delta = o_idx - o_col_1;
+                % z_col_1
+                z_col_1 = h_col_1(1:3,3);
+                % J_col
+                J(1:3,col) = cross(z_col_1,o_delta);
+            end
+
+
+
+            % F calculation
+            %F = get_F_i_rep(q,obs,myrobot,i,eta);
+            h_idx  = forward_idx(q,myrobot,idx);
+            o_idx  = h_idx(1:3,4);
+            % check obs
+            R =  obs.R;
+            c =  obs.c;
+            rho0 = obs.rho0;
+            type = obs.type;
+        
+            % check wether sphere or cylinder
+            % rho_vector := o - b
+            if     type == 'sph'
+                rho_vector = (o_idx - c) * ( 1 - R / norm(o_idx - c));
+        
+            elseif type == 'cyl'
+                rho_vector = [(o_idx(1:2) - c); 0] * ( 1 - R / norm([(o_idx(1:2) - c); 0]) );
+            end
+        
+            % force calculation
+            rho = norm(rho_vector);
+            if rho <= rho0
+                del_rho = rho_vector / rho;
+                force = eta * (1/rho - 1/rho0) / rho^2 * del_rho;
+            else
+                force = zeros(3,1);
+            end
+
+            % tau calculation
+            tau = tau + J' * F;
+        end
+    end
+    
+    if tau != zeros(1,6)
+        tau = tau / norm(tau);
+    end
+
+    tau = tau*0.01
+end
